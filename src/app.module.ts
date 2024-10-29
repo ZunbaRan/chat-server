@@ -1,27 +1,23 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from './config/config.module';
-// 移除单独的实体导入
-import * as entities from './entities';
+import { ChatModule } from './chat/chat.module';
+import { ConfigModule as AIConfigModule } from './config/config.module';
+import { databaseConfig } from './config/database.config';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'your-username',
-      password: 'your-password',
-      database: 'your-database',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env', '.env.development'],
     }),
-    ConfigModule,
-    TypeOrmModule.forFeature(Object.values(entities)),
+    TypeOrmModule.forRoot(databaseConfig),
+    ChatModule,
+    AIConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

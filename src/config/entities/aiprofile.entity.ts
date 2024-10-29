@@ -1,18 +1,31 @@
 // src/config/entities/aiprofile.entity.ts
 
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
 
-@Entity()
+@Entity('ai_profile')
 export class AIProfile {
+  @ApiProperty({ description: 'AI配置唯一标识符' })
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @ApiProperty({ description: 'AI助手名称' })
+  @Column({ length: 255 })
   name: string;
 
-  @Column()
+  @ApiProperty({ description: 'AI助手描述' })
+  @Column({ type: 'text' })
   description: string;
 
-  @Column()
-  personality: string; // JSON字符串形式保存个性化设置
+  @ApiProperty({ description: 'AI助手个性化设置(JSON格式)' })
+  @Column({ type: 'text' })
+  personality: string;
+
+  @ApiProperty({ description: '创建时间' })
+  @CreateDateColumn({ type: 'timestamp with time zone' })
+  createdAt: Date;
+
+  @ApiProperty({ description: '最后更新时间' })
+  @UpdateDateColumn({ type: 'timestamp with time zone' })
+  updatedAt: Date;
 }
