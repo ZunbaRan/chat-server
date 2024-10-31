@@ -21,6 +21,23 @@ export class AIProfile {
   @Column({ type: 'text' })
   personality: string;
 
+  @ApiProperty({ description: 'API密钥' })
+  @Column({ length: 255, nullable: true })
+  apiKey: string;
+
+  @ApiProperty({ description: 'AI引擎接口地址' })
+  @Column({ length: 255, nullable: true })
+  engineEndpoint: string;
+
+  // 暂时使用不到
+  @ApiProperty({ description: '请求格式配置(JSON格式)' })
+  @Column({ type: 'jsonb', nullable: true, default: '{}' })
+  requestFormat: Record<string, any>;
+
+  @ApiProperty({ description: '响应格式配置(JSON格式)' })
+  @Column({ type: 'jsonb', nullable: true, default: '{}' })
+  responseFormat: Record<string, any>;
+
   @ApiProperty({ description: '创建时间' })
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
@@ -28,4 +45,8 @@ export class AIProfile {
   @ApiProperty({ description: '最后更新时间' })
   @UpdateDateColumn({ type: 'timestamp with time zone' })
   updatedAt: Date;
+
+  @ApiProperty({ description: '模型类型' })
+  @Column({ default: 'gpt-3.5-turbo' })
+  modelName: string;
 }

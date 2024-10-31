@@ -65,7 +65,7 @@ export class ConfigController {
   @ApiBody({ type: UpdateAIProfileDto })
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({ status: 404, description: '配置不存在' })
-  update(@Param('id') id: string, @Body() updateAIProfileDto: UpdateAIProfileDto): Promise<void> {
+  update(@Param('id') id: string, @Body() updateAIProfileDto: UpdateAIProfileDto): Promise<AIProfile> {
     return this.configService.update(id, updateAIProfileDto);
   }
 
@@ -80,5 +80,20 @@ export class ConfigController {
   @ApiResponse({ status: 404, description: '配置不存在' })
   remove(@Param('id') id: string): Promise<void> {
     return this.configService.remove(id);
+  }
+
+  @Post('chat/:profileId')
+  async chat(
+    @Param('profileId') profileId: string,
+    @Body() body: { 
+      message: string;
+      previousMessages?: Array<{ role: 'system' | 'user' | 'assistant', content: string }>;
+    }
+  ) {
+    return await this.configService.callAIAPI(
+      profileId, 
+      body.message,
+      body.previousMessages
+    );
   }
 }
