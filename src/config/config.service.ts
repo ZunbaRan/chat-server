@@ -1,6 +1,6 @@
 // src/config/config.service.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AIProfile } from './entities/aiprofile.entity';
@@ -12,34 +12,34 @@ interface Message {
   content: string;
 }
 
+// 首先定义返回类型接口
+export interface AIResponse {
+  content: string;
+  aiName: string;
+}
+
 @Injectable()
 export class ConfigService {
   constructor(
-    @InjectRepository(AIProfile)
+    @InjectRepository(AIProfile) // 确保这里注入了 AIProfileRepository
     private aiProfileRepository: Repository<AIProfile>,
-  ) { }
+  ) {}
 
   async callAIAPI(
     profileId: string,
     userInput: string,
     previousMessages: Message[] = []
-  ): Promise<string> {
-    // 1. 获取 AI 配置
-    const profile = await this.aiProfileRepository.findOne({
-      where: { id: profileId }
-    });
-
+  ): Promise<AIResponse> {
+    const profile = await this.findOne(profileId);
     if (!profile) {
-      throw new Error('AI Profile not found');
+      throw new NotFoundException(`Profile with ID ${profileId} not found`);
     }
 
-    // 2. 创建 OpenAI 实例
     const openai = new OpenAI({
-      baseURL: profile.engineEndpoint,
       apiKey: profile.apiKey,
+      baseURL: profile.engineEndpoint || undefined,
     });
 
-    // 3. 准备请求数据
     const requestData = this.prepareRequestData(
       profile.personality,
       userInput,
@@ -48,21 +48,22 @@ export class ConfigService {
     );
 
     // try {
-    // 4. 调用 API
-    const completion = await openai.chat.completions.create(requestData);
+      const response = await openai.chat.completions.create(requestData);
+      let result: string = ''; // Explicitly define the type as string
+      if (profile.responseFormat?.rule) {
+        result = this.parseResponse(response, profile.responseFormat.rule);
+      }
+  
+      result as unknown as string;
 
-    // 5. 解析响应
-    let response = completion;
-    let result: string = ''; // Explicitly define the type as string
-    if (profile.responseFormat?.rule) {
-      result = this.parseResponse(response, profile.responseFormat.rule);
-    }
-
-    return result as unknown as string;
-
+      return {
+        // content: completion.choices[0]?.message?.content || '抱歉，我没有得到有效的回复。',
+        content: result,
+        aiName: profile.name // 使用配置文件中的AI名称
+      };
     // } catch (error) {
-    //   console.error('AI API call failed:', error);
-    //   throw new Error(`AI API call failed: ${error.message}`);
+    //   console.error('OpenAI API error:', error);
+    //   throw new Error('Failed to get response from AI service');
     // }
   }
 
@@ -78,11 +79,15 @@ export class ConfigService {
         content: personality
       },
       ...previousMessages,
-      {
+    ];
+
+    // 只有在有用户输入时才添加用户消息
+    if (userInput.trim()) {
+      messages.push({
         role: 'user' as const,
         content: userInput
-      }
-    ];
+      });
+    }
 
     return {
       model: modelName,
@@ -90,6 +95,7 @@ export class ConfigService {
       stream: false
     };
   }
+
 
   private parseResponse(response: any, rule: string): string {
     // 移除开头的 $ 符号（如果存在）

@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Post, Body, Param, Get } from '@nestjs/common';
 import { ChatService } from './chat.service';
+import { ConfigService } from '../config/config.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { ChatMessage } from '../entities/chat-message.entity';
 import { ChatSession } from '../entities/chat-session.entity';
@@ -8,10 +9,13 @@ import { ChatSession } from '../entities/chat-session.entity';
  * 聊天控制器
  * 处理与聊天会话和消息相关的HTTP请求
  */
-@ApiTags('聊天管理')
+@ApiTags('聊天')
 @Controller('chat')
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
    * 创建新的聊天会话
@@ -131,5 +135,71 @@ export class ChatController {
   @Get('sessions')
   async getAllSessions() {
     return this.chatService.getAllSessions();
+  }
+
+  @Post(':sessionId/message')
+  @ApiOperation({ 
+    summary: '发送消息', 
+    description: '用于用户发送消息或获取AI回复' 
+  })
+  @ApiParam({ name: 'sessionId', description: '会话ID' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        message: { 
+          type: 'string', 
+          description: '用户消息，用户发送时必填',
+          required: ['false'] 
+        },
+        profileId: { 
+          type: 'string', 
+          description: 'AI配置ID，获取AI回复时必填',
+          required: ['false'] 
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: '成功', type: ChatMessage })
+  async handleMessage(
+    @Param('sessionId') sessionId: number,
+    @Body() body: { message?: string; profileId?: string },
+  ): Promise<ChatMessage> {
+    // 情况1：用户发送消息
+    if (body.message) {
+      return await this.chatService.saveMessage({
+        content: body.message,
+        sessionId: sessionId,
+        aiName: 'user',
+      });
+    }
+    
+    // 情况2：获取AI回复
+    if (body.profileId) {
+      // 获取最近的3条消息
+      const recentMessages = await this.chatService.getRecentMessages(sessionId, 3);
+
+      // 准备previousMessages数组
+      const previousMessages = recentMessages.reverse().map(msg => ({
+        role: msg.aiName === 'user' ? 'user' : 'assistant' as 'system' | 'user' | 'assistant',
+        content: msg.content,
+      }));
+
+      // 调用AI API获取回复
+      const aiResponse = await this.configService.callAIAPI(
+        body.profileId,
+        '', // 空字符串表示不需要添加新的用户输入
+        previousMessages,
+      );
+
+      // 保存并返回AI回复
+      return await this.chatService.saveMessage({
+        content: aiResponse.content,
+        sessionId: sessionId,
+        aiName: aiResponse.aiName || 'AI',
+      });
+    }
+
+    throw new Error('必须提供 message 或 profileId 参数之一');
   }
 }

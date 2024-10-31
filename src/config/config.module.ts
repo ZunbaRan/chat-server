@@ -5,7 +5,9 @@ import { ConfigController } from './config.controller';
 import { AIProfile } from './entities/aiprofile.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AIProfile])],
+  imports: [
+    TypeOrmModule.forFeature([AIProfile]),
+  ],
   providers: [ConfigService],
   controllers: [ConfigController],
 })

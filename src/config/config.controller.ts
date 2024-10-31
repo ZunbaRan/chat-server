@@ -6,6 +6,7 @@ import { CreateAIProfileDto } from './dto/create-aiprofile.dto';
 import { UpdateAIProfileDto } from './dto/update-aiprofile.dto';
 import { AIProfile } from './entities/aiprofile.entity';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { AIResponse } from './config.service';
 
 /**
  * AI配置控制器
@@ -89,7 +90,7 @@ export class ConfigController {
       message: string;
       previousMessages?: Array<{ role: 'system' | 'user' | 'assistant', content: string }>;
     }
-  ) {
+  ): Promise<AIResponse> {
     return await this.configService.callAIAPI(
       profileId, 
       body.message,

@@ -43,4 +43,30 @@ export class ChatService {
   async getAllSessions(): Promise<ChatSession[]> {
     return this.chatSessionRepository.find();
   }
+
+  async saveMessage(messageData: {
+    content: string;
+    sessionId: number;
+    aiName: string;
+  }): Promise<ChatMessage> {
+    const message = this.chatMessageRepository.create({
+      content: messageData.content,
+      aiName: messageData.aiName,
+      session: { id: messageData.sessionId },
+    });
+    return await this.chatMessageRepository.save(message);
+  }
+
+  async getRecentMessages(sessionId: number, limit: number): Promise<ChatMessage[]> {
+    return await this.chatMessageRepository.find({
+      where: {
+        session: { id: sessionId },
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+      take: limit,
+      relations: ['session'],
+    });
+  }
 }
