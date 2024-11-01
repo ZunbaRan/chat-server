@@ -57,7 +57,6 @@ export class ConfigService {
       result as unknown as string;
 
       return {
-        // content: completion.choices[0]?.message?.content || '抱歉，我没有得到有效的回复。',
         content: result,
         aiName: profile.name // 使用配置文件中的AI名称
       };
