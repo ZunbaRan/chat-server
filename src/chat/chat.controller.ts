@@ -15,18 +15,18 @@ export class ChatController {
   constructor(
     private readonly chatService: ChatService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   /**
    * 创建新的聊天会话
    * @param topic 会话主题
    * @returns 新创建的会话信息
    */
-  @ApiOperation({ 
+  @ApiOperation({
     summary: '创建新的聊天会话',
     description: '创建一个新的聊天会话，需要提供会话主题'
   })
-  @ApiBody({ 
+  @ApiBody({
     schema: {
       type: 'object',
       properties: {
@@ -38,8 +38,8 @@ export class ChatController {
       }
     }
   })
-  @ApiResponse({ 
-    status: 201, 
+  @ApiResponse({
+    status: 201,
     description: '会话创建成功',
     type: ChatSession
   })
@@ -55,16 +55,16 @@ export class ChatController {
    * @param content 消息内容
    * @returns 新添加的消息信息
    */
-  @ApiOperation({ 
+  @ApiOperation({
     summary: '向指定会话添加新消息',
     description: '在指定的会话中添加一条新的消息'
   })
-  @ApiParam({ 
-    name: 'id', 
+  @ApiParam({
+    name: 'id',
     description: '会话ID',
     type: 'number'
   })
-  @ApiBody({ 
+  @ApiBody({
     schema: {
       type: 'object',
       properties: {
@@ -81,15 +81,15 @@ export class ChatController {
       }
     }
   })
-  @ApiResponse({ 
-    status: 201, 
+  @ApiResponse({
+    status: 201,
     description: '消息添加成功',
     type: ChatMessage
   })
   @Post('session/:id/message')
   async addMessage(
-    @Param('id') sessionId: number, 
-    @Body('aiName') aiName: string, 
+    @Param('id') sessionId: number,
+    @Body('aiName') aiName: string,
     @Body('content') content: string
   ) {
     return this.chatService.addMessage(sessionId, aiName, content);
@@ -100,17 +100,17 @@ export class ChatController {
    * @param sessionId 会话ID
    * @returns 会话中的所有消息列表
    */
-  @ApiOperation({ 
+  @ApiOperation({
     summary: '获取指定会话的所有消息',
     description: '获取某个会话的完整聊天记录'
   })
-  @ApiParam({ 
-    name: 'id', 
+  @ApiParam({
+    name: 'id',
     description: '会话ID',
     type: 'number'
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: '成功获取会话消息',
     type: [ChatMessage]
   })
@@ -123,12 +123,12 @@ export class ChatController {
    * 获取所有聊天会话列表
    * @returns 所有会话的列表
    */
-  @ApiOperation({ 
+  @ApiOperation({
     summary: '获取所有聊天会话列表',
     description: '获取系统中所有的聊天会话'
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: '成功获取会话列表',
     type: [ChatSession]
   })
@@ -138,24 +138,24 @@ export class ChatController {
   }
 
   @Post(':sessionId/message')
-  @ApiOperation({ 
-    summary: '发送消息', 
-    description: '用于用户发送消息或获取AI回复' 
+  @ApiOperation({
+    summary: '发送消息',
+    description: '用于用户发送消息或获取AI回复'
   })
   @ApiParam({ name: 'sessionId', description: '会话ID' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        message: { 
-          type: 'string', 
+        message: {
+          type: 'string',
           description: '用户消息，用户发送时必填',
-          required: ['false'] 
+          required: ['false']
         },
-        profileId: { 
-          type: 'string', 
+        profileId: {
+          type: 'string',
           description: 'AI配置ID，获取AI回复时必填',
-          required: ['false'] 
+          required: ['false']
         },
       },
     },
@@ -173,14 +173,24 @@ export class ChatController {
         aiName: 'user',
       });
     }
-    
+
     // 情况2：获取AI回复
     if (body.profileId) {
       // 获取最近的3条消息
       const recentMessages = await this.chatService.getRecentMessages(sessionId, 3);
 
+      // 最近的3条消息中是否有用户消息
+      const hasUserMessage = recentMessages.some(msg => msg.aiName === 'user');
+
+      // 如果最近的3条消息中是没有用户消息, 那么recentMessages.reverse后， 最后一个元素的 role 设置为user
+      let modifiedMessages = recentMessages;
+      if (!hasUserMessage) {
+        modifiedMessages = recentMessages.slice(); // 创建副本以避免修改原数组
+        modifiedMessages[0].aiName = 'user';
+      }
+
       // 准备previousMessages数组
-      const previousMessages = recentMessages.reverse().map(msg => ({
+      const previousMessages = modifiedMessages.reverse().map(msg => ({
         role: msg.aiName === 'user' ? 'user' : 'assistant' as 'system' | 'user' | 'assistant',
         content: msg.content,
       }));

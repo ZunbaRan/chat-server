@@ -69,4 +69,12 @@ export class ChatService {
       relations: ['session'],
     });
   }
+
+  async getRecentUserMessages(sessionId: number): Promise<ChatMessage> {
+    return await this.chatMessageRepository.find({
+      where: { session: { id: sessionId }, aiName: 'user' },
+      order: { createdAt: 'DESC' },
+      take: 1,
+    }).then(messages => messages[0]);
+  }
 }
