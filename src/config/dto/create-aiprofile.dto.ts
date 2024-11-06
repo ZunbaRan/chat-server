@@ -19,6 +19,15 @@ export class CreateAIProfileDto {
     @IsNotEmpty()
     readonly description: string;
 
+    // base64 编码的图片
+    @ApiProperty({ 
+        description: '头像',
+        example: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIA...'
+    })
+    @IsString()
+    @IsOptional()
+    readonly avatar?: string;
+
     @ApiProperty({ 
         description: 'AI助手个性化设置(JSON格式)',
         example: '{"tone": "professional", "style": "friendly"}'

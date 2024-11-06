@@ -2,9 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { json } from 'body-parser';
+
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  
+  app.use(json({ limit: '5mb' }));
 
   // 全局验证管道
   app.useGlobalPipes(new ValidationPipe());
@@ -22,6 +26,7 @@ async function bootstrap() {
 
   // CORS配置
   app.enableCors();
+
 
   await app.listen(3000);
   console.log(`应用已启动: ${await app.getUrl()}`);

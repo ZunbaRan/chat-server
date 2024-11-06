@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsOptional, IsObject } from 'class-validator';
 
 export class UpdateAIProfileDto {
-    @ApiProperty({ 
+    @ApiProperty({
         description: 'AI助手名称',
         example: 'Claude Assistant',
         required: false
@@ -12,7 +12,7 @@ export class UpdateAIProfileDto {
     @IsOptional()
     readonly name?: string;
 
-    @ApiProperty({ 
+    @ApiProperty({
         description: 'AI助手描述',
         example: '这是一个专业的AI助手，擅长编程和技术讨论',
         required: false
@@ -21,7 +21,16 @@ export class UpdateAIProfileDto {
     @IsOptional()
     readonly description?: string;
 
-    @ApiProperty({ 
+    // base64 编码的图片
+    @ApiProperty({
+        description: '头像',
+        example: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIA...'
+    })
+    @IsString()
+    @IsOptional()
+    readonly avatar?: string;
+
+    @ApiProperty({
         description: 'AI助手个性化设置(JSON格式)',
         example: '{"tone": "professional", "style": "friendly"}',
         required: false
@@ -30,7 +39,7 @@ export class UpdateAIProfileDto {
     @IsOptional()
     readonly personality?: string;
 
-    @ApiProperty({ 
+    @ApiProperty({
         description: 'API密钥',
         example: 'sk-xxxxxx',
         required: false
@@ -39,7 +48,7 @@ export class UpdateAIProfileDto {
     @IsOptional()
     readonly apiKey?: string;
 
-    @ApiProperty({ 
+    @ApiProperty({
         description: 'AI引擎接口地址',
         example: 'https://api.anthropic.com/v1/messages',
         required: false
@@ -48,9 +57,9 @@ export class UpdateAIProfileDto {
     @IsOptional()
     readonly engineEndpoint?: string;
 
-    @ApiProperty({ 
+    @ApiProperty({
         description: '请求格式配置',
-        example: { 
+        example: {
             model: 'claude-3-opus-20240229',
             max_tokens: 1000
         },
@@ -60,7 +69,7 @@ export class UpdateAIProfileDto {
     @IsOptional()
     readonly requestFormat?: Record<string, any>;
 
-    @ApiProperty({ 
+    @ApiProperty({
         description: '响应格式配置',
         example: {
             format: 'markdown',
@@ -72,4 +81,3 @@ export class UpdateAIProfileDto {
     @IsOptional()
     readonly responseFormat?: Record<string, any>;
 }
-  

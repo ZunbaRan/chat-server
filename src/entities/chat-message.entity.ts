@@ -1,6 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, JoinColumn, OneToOne } from 'typeorm';
 import { ChatSession } from './chat-session.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { MessageType } from '../chat/dto/Message.type';
+import { AIProfile } from '../config/entities/aiprofile.entity';
 
 @Entity()
 export class ChatMessage {
@@ -11,12 +13,20 @@ export class ChatMessage {
   @PrimaryGeneratedColumn()
   id: number;
 
+  // 可以为 null
   @ApiProperty({ 
-    description: 'AI助手名称',
-    example: 'Claude'
+    description: 'AI 助手 ID',
+    example: '123e4567-e89b-12d3-a456-426614174000'
   })
-  @Column()
-  aiName: string;
+  @Column({ nullable: true })
+  aiId: string;
+
+  @ApiProperty({ 
+    description: '消息类型',
+    example: 'ai|user'
+  })
+  @Column({ nullable: true, default: MessageType.USER })
+  type: MessageType ;
 
   @ApiProperty({ 
     description: '消息内容',
@@ -38,4 +48,8 @@ export class ChatMessage {
   })
   @ManyToOne(() => ChatSession, (session) => session.messages)
   session: ChatSession;
+
+  @ManyToOne(() => AIProfile)
+  @JoinColumn({ name: 'aiId', })
+  aiProfile: AIProfile;
 }

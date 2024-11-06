@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import { AIProfile } from './entities/aiprofile.entity';
 import OpenAI from 'openai';
 import { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
+import { MessageType } from 'src/chat/dto/Message.type';
 
 interface Message {
   role: 'system' | 'user' | 'assistant';
@@ -15,7 +16,7 @@ interface Message {
 // 首先定义返回类型接口
 export interface AIResponse {
   content: string;
-  aiName: string;
+  aiId: string ;
 }
 
 @Injectable()
@@ -58,7 +59,7 @@ export class ConfigService {
 
       return {
         content: result,
-        aiName: profile.name // 使用配置文件中的AI名称
+        aiId: profile.id // 使用配置文件中的AI名称
       };
     // } catch (error) {
     //   console.error('OpenAI API error:', error);

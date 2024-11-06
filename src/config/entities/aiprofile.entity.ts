@@ -49,4 +49,9 @@ export class AIProfile {
   @ApiProperty({ description: '模型类型' })
   @Column({ default: 'gpt-3.5-turbo' })
   modelName: string;
+
+  // 使用 base
+  @ApiProperty({ description: '头像' })
+  @Column({ type: 'text', nullable: true })
+  avatar: string;
 }

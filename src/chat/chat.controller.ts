@@ -4,6 +4,8 @@ import { ConfigService } from '../config/config.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { ChatMessage } from '../entities/chat-message.entity';
 import { ChatSession } from '../entities/chat-session.entity';
+import { MessageType } from './dto/Message.type';
+import { ChatMessageListDto } from './dto/chat-message-list.dto';
 
 /**
  * 聊天控制器
@@ -89,10 +91,10 @@ export class ChatController {
   @Post('session/:id/message')
   async addMessage(
     @Param('id') sessionId: number,
-    @Body('aiName') aiName: string,
+    @Body('aiId') aiId: string,
     @Body('content') content: string
   ) {
-    return this.chatService.addMessage(sessionId, aiName, content);
+    return this.chatService.addMessage(sessionId, aiId, content);
   }
 
   /**
@@ -112,7 +114,7 @@ export class ChatController {
   @ApiResponse({
     status: 200,
     description: '成功获取会话消息',
-    type: [ChatMessage]
+    type: [ChatMessageListDto]
   })
   @Get('session/:id')
   async getSessionMessages(@Param('id') sessionId: number) {
@@ -170,28 +172,29 @@ export class ChatController {
       return await this.chatService.saveMessage({
         content: body.message,
         sessionId: sessionId,
-        aiName: 'user',
+        aiId: body.profileId,
       });
     }
 
     // 情况2：获取AI回复
     if (body.profileId) {
       // 获取最近的3条消息
-      const recentMessages = await this.chatService.getRecentMessages(sessionId, 3);
+      const recentMessages = await this.chatService.getRecentMessages(sessionId, 5);
 
       // 最近的3条消息中是否有用户消息
-      const hasUserMessage = recentMessages.some(msg => msg.aiName === 'user');
+      const hasUserMessage = recentMessages.some(msg => msg.type === MessageType.USER);
 
       // 如果最近的3条消息中是没有用户消息, 那么recentMessages.reverse后， 最后一个元素的 role 设置为user
+      // 这是部分 api 的要求，要求最新的一条内容必须为用户发送
       let modifiedMessages = recentMessages;
       if (!hasUserMessage) {
         modifiedMessages = recentMessages.slice(); // 创建副本以避免修改原数组
-        modifiedMessages[0].aiName = 'user';
+        modifiedMessages[0].type = MessageType.USER;
       }
 
       // 准备previousMessages数组
       const previousMessages = modifiedMessages.reverse().map(msg => ({
-        role: msg.aiName === 'user' ? 'user' : 'assistant' as 'system' | 'user' | 'assistant',
+        role: msg.type === MessageType.USER ? 'user' : 'assistant' as 'system' | 'user' | 'assistant',
         content: msg.content,
       }));
 
@@ -206,7 +209,7 @@ export class ChatController {
       return await this.chatService.saveMessage({
         content: aiResponse.content,
         sessionId: sessionId,
-        aiName: aiResponse.aiName || 'AI',
+        aiId: body.profileId,
       });
     }
 
