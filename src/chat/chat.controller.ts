@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Param, Get } from '@nestjs/common';
+import { Controller, Post, Body, Param, Get, NotFoundException, BadRequestException, Patch } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { ConfigService } from '../config/config.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
@@ -49,7 +49,48 @@ export class ChatController {
   async createSession(@Body('topic') topic: string) {
     return this.chatService.createSession(topic);
   }
+  
 
+  @Patch('session/:sessionId')
+  @ApiOperation({
+    summary: '更新聊天会话信息',
+    description: '更新指定会话的主题'
+  })
+  @ApiParam({
+    name: 'sessionId',
+    description: '会话ID',
+    type: 'number'
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        topic: {
+          type: 'string',
+          example: '新的会话主题',
+          description: '新的会话主题'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: '操作结果',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 200 },
+        message: { type: 'string', example: 'Chat session updated successfully' }
+      }
+    }
+  })
+  async updateSession(
+    @Param('sessionId') sessionId: number,
+    @Body('topic') topic: string
+  ): Promise<{ code: number; message: string }> {
+    return await this.chatService.updateSession(sessionId, topic);
+  }
+  
   /**
    * 向指定会话添加新消息
    * @param sessionId 会话ID
@@ -178,7 +219,7 @@ export class ChatController {
 
     // 情况2：获取AI回复
     if (body.profileId) {
-      // 获取最近的3条消息
+      // 获取最近的5条消息
       const recentMessages = await this.chatService.getRecentMessages(sessionId, 5);
 
       // 最近的3条消息中是否有用户消息
@@ -206,8 +247,11 @@ export class ChatController {
       );
 
       // 保存并返回AI回复
+      const content = aiResponse.content || 
+        ['呵呵', '哈哈', '太对了哥', "好好好,玩尬的是吧"][Math.floor(Math.random() * 3)]; // 随机选择一个字符串
+
       return await this.chatService.saveMessage({
-        content: aiResponse.content,
+        content: content,
         sessionId: sessionId,
         aiId: body.profileId,
       });
@@ -215,4 +259,38 @@ export class ChatController {
 
     throw new Error('必须提供 message 或 profileId 参数之一');
   }
+
+  @Post('session/:sessionId/ai/:aiProfileId')
+  @ApiOperation({
+    summary: '添加 AI 角色到会话',
+    description: '向指定会话添加一个 AI 角色（最多20个）'
+  })
+  @ApiParam({
+    name: 'sessionId',
+    description: '会话ID',
+    type: 'number'
+  })
+  @ApiParam({
+    name: 'aiProfileId',
+    description: 'AI配置ID',
+    type: 'string'
+  })
+  @ApiResponse({
+    status: 200,
+    description: '操作结果',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 200 },
+        message: { type: 'string', example: 'AI successfully added to session' }
+      }
+    }
+  })
+  async addAIToSession(
+    @Param('sessionId') sessionId: number,
+    @Param('aiProfileId') aiProfileId: string
+  ): Promise<{ code: number; message: string }> {
+    return await this.chatService.addAIToSession(sessionId, aiProfileId);
+  }
+
 }

@@ -2,6 +2,7 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { AIProfile } from './entities/aiprofile.entity';
 import { ChatMessage } from '../entities/chat-message.entity';
 import { ChatSession } from '../entities/chat-session.entity';
+import { SessionAI } from '../entities/session-ai.entity';
 
 export const databaseConfig: TypeOrmModuleOptions = {
   type: 'postgres',
@@ -11,7 +12,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || 'mysecretpassword',
   database: process.env.DB_DATABASE || 'chat_demo',
-  entities: [AIProfile, ChatMessage, ChatSession],
+  entities: [AIProfile, ChatMessage, ChatSession, SessionAI],
   synchronize: process.env.NODE_ENV !== 'production', // 开发环境下自动同步数据库结构
   logging: process.env.NODE_ENV !== 'production',
   ssl: false,
