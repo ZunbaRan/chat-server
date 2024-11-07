@@ -54,6 +54,17 @@ export class CreateAIProfileDto {
     @IsOptional()
     readonly engineEndpoint?: string;
 
+
+    // 模型名称
+    @ApiProperty({ 
+        description: '模型名称',
+        example: 'deepseek-chat',
+        required: false
+    })
+    @IsString()
+    @IsOptional()
+    readonly modelName?: string;
+
     @ApiProperty({ 
         description: '请求格式配置',
         example: { 

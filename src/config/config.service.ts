@@ -16,7 +16,7 @@ interface Message {
 // 首先定义返回类型接口
 export interface AIResponse {
   content: string;
-  aiId: string ;
+  aiId: string;
 }
 
 @Injectable()
@@ -24,7 +24,7 @@ export class ConfigService {
   constructor(
     @InjectRepository(AIProfile) // 确保这里注入了 AIProfileRepository
     private aiProfileRepository: Repository<AIProfile>,
-  ) {}
+  ) { }
 
   async callAIAPI(
     profileId: string,
@@ -48,23 +48,23 @@ export class ConfigService {
       profile.modelName
     );
 
-    // try {
+    try {
       const response = await openai.chat.completions.create(requestData);
       let result: string = ''; // Explicitly define the type as string
       if (profile.responseFormat?.rule) {
         result = this.parseResponse(response, profile.responseFormat.rule);
       }
-  
+
       result as unknown as string;
 
       return {
         content: result,
         aiId: profile.id // 使用配置文件中的AI名称
       };
-    // } catch (error) {
-    //   console.error('OpenAI API error:', error);
-    //   throw new Error('Failed to get response from AI service');
-    // }
+    } catch (error) {
+      console.error('OpenAI API error:', error);
+      throw new Error('Failed to get response from AI service');
+    }
   }
 
   private prepareRequestData(
@@ -100,7 +100,7 @@ export class ConfigService {
   private parseResponse(response: any, rule: string): string {
     // 移除开头的 $ 符号（如果存在）
     const path = rule.startsWith('$') ? rule.slice(2) : rule;
-    
+
     // 分割路径
     const segments = path.split('.')
       .map(segment => {
@@ -113,7 +113,7 @@ export class ConfigService {
         return [segment];
       })
       .flat();
-  
+
     // 遍历路径获取值
     let result = response;
     for (const segment of segments) {
@@ -122,12 +122,12 @@ export class ConfigService {
       }
       result = result[segment];
     }
-  
+
     // 确保返回字符串
     if (typeof result !== 'string') {
       throw new Error('Final result must be a string');
     }
-  
+
     return result;
   }
 
