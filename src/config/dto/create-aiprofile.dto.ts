@@ -1,6 +1,7 @@
 // src/config/dto/create-aiprofile.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsObject } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsObject, IsEnum } from 'class-validator';
+import { AiBusinessType } from './ai.business.type';
 
 export class CreateAIProfileDto {
     @ApiProperty({ 
@@ -77,5 +78,14 @@ export class CreateAIProfileDto {
     @IsObject()
     @IsOptional()
     readonly responseFormat?: Record<string, any>;
+
+    @ApiProperty({
+        description: '业务类型',
+        example: AiBusinessType.REPLAY,
+        required: false
+    })
+    @IsEnum(AiBusinessType)
+    @IsOptional()
+    readonly businessType?: AiBusinessType;
 }
   

@@ -6,6 +6,7 @@ import { ChatMessage } from '../entities/chat-message.entity';
 import { ChatSession } from '../entities/chat-session.entity';
 import { MessageType } from './dto/Message.type';
 import { ChatMessageListDto } from './dto/chat-message-list.dto';
+import { AiOrderResponseDto } from './dto/ai-order.dto';
 
 /**
  * 聊天控制器
@@ -75,7 +76,7 @@ export class ChatController {
   })
   @ApiResponse({
     status: 200,
-    description: '操作结果',
+    description: '操��结果',
     schema: {
       type: 'object',
       properties: {
@@ -90,7 +91,7 @@ export class ChatController {
   ): Promise<{ code: number; message: string }> {
     return await this.chatService.updateSession(sessionId, topic);
   }
-  
+
   /**
    * 向指定会话添加新消息
    * @param sessionId 会话ID
@@ -225,7 +226,7 @@ export class ChatController {
       // 最近的3条消息中是否有用户消息
       const hasUserMessage = recentMessages.some(msg => msg.type === MessageType.USER);
 
-      // 如果最近的3条消息中是没有用户消息, 那么recentMessages.reverse后， 最后一个元素的 role 设置为user
+      // 如果最近的3条消息中是没有��户消息, 那么recentMessages.reverse后， 最后一个元素的 role 设置为user
       // 这是部分 api 的要求，要求最新的一条内容必须为用户发送
       let modifiedMessages = recentMessages;
       if (!hasUserMessage) {
@@ -291,6 +292,27 @@ export class ChatController {
     @Param('aiProfileId') aiProfileId: string
   ): Promise<{ code: number; message: string }> {
     return await this.chatService.addAIToSession(sessionId, aiProfileId);
+  }
+
+  @Post('session/:sessionId/generate-order')
+  @ApiOperation({
+    summary: '生成AI发言顺序',
+    description: '为会话中的AI生成随机发言顺序，每4个普通回复后插入1个提问类AI'
+  })
+  @ApiParam({
+    name: 'sessionId',
+    description: '会话ID',
+    type: 'number'
+  })
+  @ApiResponse({
+    status: 200,
+    description: '操作结果',
+    type: AiOrderResponseDto
+  })
+  async generateAIOrder(
+    @Param('sessionId') sessionId: number
+  ): Promise<AiOrderResponseDto> {
+    return await this.chatService.generateAIOrder(sessionId);
   }
 
 }

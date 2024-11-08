@@ -7,7 +7,8 @@ import { MessageType } from './dto/Message.type';
 import { ChatMessageListDto } from './dto/chat-message-list.dto';
 import { SessionAI } from '../entities/session-ai.entity';
 import { AIProfile } from '../config/entities/aiprofile.entity';
-import { AiProfileSessionDto } from './dto/ai-profile-session.dto';
+import { AiOrderResponseDto } from './dto/ai-order.dto';
+import { AiBusinessType } from '../config/dto/ai.business.type';
 
 @Injectable()
 export class ChatService {
@@ -245,6 +246,70 @@ export class ChatService {
         code: 200,
         message: 'Chat session updated successfully'
       };
+    } catch (error) {
+      return {
+        code: 500,
+        message: 'Internal server error'
+      };
+    }
+  }
+
+  async generateAIOrder(sessionId: number): Promise<AiOrderResponseDto> {
+    try {
+      // 获取会话中的所有 AI
+      const sessionAIs = await this.sessionAIRepository.find({
+        where: { sessionId },
+        relations: ['aiProfile']
+      });
+
+      if (!sessionAIs.length) {
+        return {
+          code: 400,
+          message: 'No AIs found in this session'
+        };
+      }
+
+      // 将 AI 按业务类型分组
+      const replayAIs = sessionAIs.filter(sa => sa.aiProfile.businessType === AiBusinessType.REPLAY);
+      const questionAIs = sessionAIs.filter(sa => sa.aiProfile.businessType === AiBusinessType.QUESTION);
+
+      if (!questionAIs.length) {
+        return {
+          code: 400,
+          message: 'No question-type AI found in this session'
+        };
+      }
+
+      // 生成顺序数组
+      const orderArray: string[] = [];
+      let replayCount = 0;
+      
+      while (orderArray.length < 20) {
+        // 添加 4 个 REPLAY 类型的 AI
+        for (let i = 0; i < 4 && orderArray.length < 20; i++) {
+          const randomReplayAI = replayAIs[Math.floor(Math.random() * replayAIs.length)];
+          if (randomReplayAI) {
+            orderArray.push(randomReplayAI.aiProfileId);
+            replayCount++;
+          }
+        }
+
+        // 添加 1 个 QUESTION 类型的 AI
+        if (orderArray.length < 20 && replayCount >= 4) {
+          const randomQuestionAI = questionAIs[Math.floor(Math.random() * questionAIs.length)];
+          if (randomQuestionAI) {
+            orderArray.push(randomQuestionAI.aiProfileId);
+            replayCount = 0; // 重置计数器
+          }
+        }
+      }
+
+      return {
+        code: 200,
+        message: 'AI order generated successfully',
+        data: orderArray
+      };
+
     } catch (error) {
       return {
         code: 500,

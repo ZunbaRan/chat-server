@@ -2,6 +2,7 @@
 
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { AiBusinessType } from '../dto/ai.business.type';
 
 @Entity('ai_profile')
 export class AIProfile {
@@ -54,4 +55,8 @@ export class AIProfile {
   @ApiProperty({ description: '头像' })
   @Column({ type: 'text', nullable: true })
   avatar: string;
+
+  @ApiProperty({ description: '业务类型' })
+  @Column({ type: 'enum', enum: AiBusinessType, default: AiBusinessType.REPLAY })
+  businessType: AiBusinessType;
 }
