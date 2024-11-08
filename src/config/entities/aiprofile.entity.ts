@@ -36,7 +36,7 @@ export class AIProfile {
   requestFormat: Record<string, any>;
 
   @ApiProperty({ description: '响应格式配置(JSON格式)' })
-  @Column({ type: 'jsonb', nullable: true, default: '{}' })
+  @Column({ type: 'jsonb', nullable: true, default: '{"rule": "$.choices[0].message.content", "format": "json"}' })
   responseFormat: Record<string, any>;
 
   @ApiProperty({ description: '创建时间' })

@@ -284,9 +284,9 @@ export class ChatService {
       const orderArray: string[] = [];
       let replayCount = 0;
       
-      while (orderArray.length < 20) {
+      while (orderArray.length < 40) {
         // 添加 4 个 REPLAY 类型的 AI
-        for (let i = 0; i < 4 && orderArray.length < 20; i++) {
+        for (let i = 0; i < 4 && orderArray.length < 40; i++) {
           const randomReplayAI = replayAIs[Math.floor(Math.random() * replayAIs.length)];
           if (randomReplayAI) {
             orderArray.push(randomReplayAI.aiProfileId);
@@ -295,7 +295,7 @@ export class ChatService {
         }
 
         // 添加 1 个 QUESTION 类型的 AI
-        if (orderArray.length < 20 && replayCount >= 4) {
+        if (orderArray.length < 40 && replayCount >= 4) {
           const randomQuestionAI = questionAIs[Math.floor(Math.random() * questionAIs.length)];
           if (randomQuestionAI) {
             orderArray.push(randomQuestionAI.aiProfileId);

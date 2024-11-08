@@ -58,6 +58,17 @@ export class UpdateAIProfileDto {
     @IsOptional()
     readonly engineEndpoint?: string;
 
+
+    // 模型名称
+    @ApiProperty({ 
+        description: '模型名称',
+        example: 'deepseek-chat',
+        required: false
+    })
+    @IsString()
+    @IsOptional()
+    readonly modelName?: string;
+
     @ApiProperty({
         description: '请求格式配置',
         example: {
@@ -74,7 +85,7 @@ export class UpdateAIProfileDto {
         description: '响应格式配置',
         example: {
             format: 'markdown',
-            structure: { response: 'string' }
+            structure: {"rule": "$.choices[0].message.content", "format": "json"}
         },
         required: false
     })
