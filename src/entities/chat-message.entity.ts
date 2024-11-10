@@ -50,6 +50,6 @@ export class ChatMessage {
   session: ChatSession;
 
   @ManyToOne(() => AIProfile)
-  @JoinColumn({ name: 'aiId', })
+  @JoinColumn({ name: 'aiId' })
   aiProfile: AIProfile;
 }

@@ -1,13 +1,11 @@
-import { Controller, Post, Body, Param, Get, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Param, Get, Patch, Delete, Query } from '@nestjs/common';
 import { ChatService } from './chat.service';
-import { ConfigService } from '../config/config.service';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { ChatMessage } from '../entities/chat-message.entity';
 import { ChatSession } from '../entities/chat-session.entity';
 import { ChatMessageListDto } from './dto/chat-message-list.dto';
 import { AiOrderResponseDto } from './dto/ai-order.dto';
-import { MessageType } from './dto/Message.type';
-import { messageList } from '../config/bak.message.list';
+import { AIProfile } from '../config/entities/aiprofile.entity';
 
 /**
  * 聊天控制器
@@ -18,7 +16,6 @@ import { messageList } from '../config/bak.message.list';
 export class ChatController {
   constructor(
     private readonly chatService: ChatService,
-    private readonly configService: ConfigService,
   ) { }
 
   /**
@@ -40,38 +37,8 @@ export class ChatController {
   @ApiBody({ type: String, description: '新的会话主题' })
   @ApiResponse({ status: 200, description: '会话更新成功' })
   @Patch('session/:sessionId')
-  @ApiOperation({
-    summary: '更新聊天会话信息',
-    description: '更新指定会话的主题'
-  })
-  @ApiParam({
-    name: 'sessionId',
-    description: '会话ID',
-    type: 'number'
-  })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        topic: {
-          type: 'string',
-          example: '新的会话主题',
-          description: '新的会话主题'
-        }
-      }
-    }
-  })
-  @ApiResponse({
-    status: 200,
-    description: '操��结果',
-    schema: {
-      type: 'object',
-      properties: {
-        code: { type: 'number', example: 200 },
-        message: { type: 'string', example: 'Chat session updated successfully' }
-      }
-    }
-  })
+  @ApiOperation({summary: '更新聊天会话信息',description: '更新指定会话的主题'})
+  @ApiParam({name: 'sessionId',description: '会话ID',type: 'number'})
   async updateSession(
     @Param('sessionId') sessionId: number,
     @Body('topic') topic: string
@@ -148,93 +115,115 @@ export class ChatController {
     @Param('sessionId') sessionId: number,
     @Body() body: { message?: string; profileId?: string },
   ): Promise<ChatMessage> {
-    // 情况1：用户发送消息
     if (body.message) {
-      return await this.chatService.saveMessage({
-        content: body.message,
-        sessionId: sessionId,
-        aiId: body.profileId,
-      });
+      return await this.chatService.handleUserMessage(sessionId, body.message, body.profileId);
     }
-
-    // 情况2：获取AI回复
+    
     if (body.profileId) {
-      // 获取最近的5条消息
-      const recentMessages = await this.chatService.getRecentMessages(sessionId, 5);
-
-      // 最近的3条消息中是否有用户消息
-      const hasUserMessage = recentMessages.some(msg => msg.type === MessageType.USER);
-
-      // 查询用户最近一次发言
-      const recentUserMessages = await this.chatService.getRecentUserMessages(sessionId);
-
-      // 如果最近的3条消息中是没有用户消息, 那么recentMessages.reverse后， 最后一个元素的 role 设置为user
-      // 这是部分 api 的要求，要求最新的一条内容必须为用户发送
-      let modifiedMessages = recentMessages;
-      if (!hasUserMessage) {
-        modifiedMessages = recentMessages.slice(); // 创建副本以避免修改原数组
-        modifiedMessages[0].type = MessageType.USER;
-        modifiedMessages.push(recentUserMessages);
-      }
-
-      // 准备previousMessages数组
-      const previousMessages = modifiedMessages.reverse().map(msg => ({
-        role: msg.type === MessageType.USER ? 'user' : 'assistant' as 'system' | 'user' | 'assistant',
-        content: msg.content,
-      }));
-
-      // 调用AI API获取回复
-      const aiResponse = await this.configService.callAIAPI(
-        body.profileId,
-        '', // 空字符串表示不需要添加新的用户输入
-        previousMessages,
-      );
-
-      // 保存并返回AI回复
-      const content = aiResponse.content ||
-        messageList[Math.floor(Math.random() * messageList.length)]; // 随机选择一个字符串
-
-      return await this.chatService.saveMessage({
-        content: content,
-        sessionId: sessionId,
-        aiId: body.profileId,
-      });
+      return await this.chatService.handleAIResponse(sessionId, body.profileId);
     }
 
     throw new Error('必须提供 message 或 profileId 参数之一');
   }
 
-  @ApiOperation({ summary: '添加 AI 角色到会话' })
+  @Post('session/:sessionId/ai')
+  @ApiOperation({ summary: '批量添加 AI 角色到会话' })
+  @ApiParam({ name: 'sessionId', description: '会话ID' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        aiProfileIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'AI配置ID数组'
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 200, description: 'AI成功添加到会话' })
+  async addAIsToSession(
+    @Param('sessionId') sessionId: number,
+    @Body('aiProfileIds') aiProfileIds: string[]
+  ): Promise<{ code: number; message: string; results?: Array<{ id: string; success: boolean }> }> {
+    return await this.chatService.addAIsToSession(sessionId, aiProfileIds);
+  }
+
+
+  @ApiOperation({ summary: '删除 AI 角色到会话' })
   @ApiParam({ name: 'sessionId', description: '会话ID' })
   @ApiParam({ name: 'aiProfileId', description: 'AI配置ID' })
-  @ApiResponse({ status: 200, description: 'AI成功添加到会话' })
-  @Post('session/:sessionId/ai/:aiProfileId')
-  async addAIToSession(
+  @ApiResponse({ status: 200, description: 'AI成功从会话中删除' })
+  @Delete('session/:sessionId/ai/:aiProfileId')
+  async deleteAIFromSession(
     @Param('sessionId') sessionId: number,
     @Param('aiProfileId') aiProfileId: string
   ): Promise<{ code: number; message: string }> {
-    return await this.chatService.addAIToSession(sessionId, aiProfileId);
+    return await this.chatService.deleteAIFromSession(sessionId, aiProfileId);
   }
 
   @Post('session/:sessionId/generate-order')
-  @ApiOperation({
-    summary: '生成AI发言顺序',
-    description: '为会话中的AI生成随机发言顺序，每4个普通回复后插入1个提问类AI'
+  @ApiOperation({summary: '生成AI发言顺序', description: '为会话中的AI生成随机发言顺序'})
+  @ApiParam({ name: 'sessionId', description: '会话ID', type: 'number' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        length: {
+          type: 'number',
+          description: '生成的顺序数组长度',
+          default: 50
+        }
+      }
+    }
   })
-  @ApiParam({
-    name: 'sessionId',
-    description: '会话ID',
-    type: 'number'
-  })
-  @ApiResponse({
-    status: 200,
-    description: '操作结果',
-    type: AiOrderResponseDto
-  })
+  @ApiResponse({status: 200, description: '操作结果', type: AiOrderResponseDto})
   async generateAIOrder(
-    @Param('sessionId') sessionId: number
+    @Param('sessionId') sessionId: number,
+    @Body('length') length: number = 50
   ): Promise<AiOrderResponseDto> {
-    return await this.chatService.generateAIOrder(sessionId);
+    return await this.chatService.generateAIOrder(sessionId, length);
+  }
+
+  @Post('session/:sessionId/page')
+  @ApiOperation({ summary: '分页获取会话消息', description: '获取指定会话的消息列表' })
+  @ApiParam({ name: 'sessionId', description: '会话ID' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        page: { type: 'number', description: '页码', default: 1 },
+        limit: { type: 'number', description: '每页数量', default: 10 },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getSessionMessagesByPage(
+    @Param('sessionId') sessionId: number,
+    @Body('page') page: number = 1,
+    @Body('limit') limit: number = 10
+  ): Promise<{
+    data: ChatMessage[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    return this.chatService.getSessionMessagesByPage(sessionId, page, limit);
+  }
+
+  @Get('session/:sessionId/ai-profiles')
+  @ApiOperation({ summary: '获取会话中的所有AI配置', description: '获取指定会话中所有的AI助手配置信息' })
+  @ApiParam({ name: 'sessionId', description: '会话ID' })
+  @ApiResponse({ 
+    status: 200, 
+    description: '获取成功',
+    type: AIProfile,
+    isArray: true
+  })
+  async getSessionAIProfiles(
+    @Param('sessionId') sessionId: number
+  ): Promise<AIProfile[]> {
+    return this.chatService.getSessionAIs(sessionId);
   }
 
 }

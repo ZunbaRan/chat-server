@@ -2,10 +2,11 @@
 
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import { AIProfile } from './entities/aiprofile.entity';
 import OpenAI from 'openai';
 import { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
+import { AiBusinessType } from './dto/ai.business.type';
 
 interface Message {
   role: 'system' | 'user' | 'assistant';
@@ -142,7 +143,13 @@ export class ConfigService {
    * 获取所有 AI 配置文件
    */
   async findAll(): Promise<AIProfile[]> {
-    return await this.aiProfileRepository.find();
+    // 过滤掉businessType为HIDDEN的配置文件
+    return await this.aiProfileRepository.find({
+      where: {
+        businessType: Not(AiBusinessType.HIDDEN)
+      }
+    });
+    // return await this.aiProfileRepository.find();
   }
 
   /**

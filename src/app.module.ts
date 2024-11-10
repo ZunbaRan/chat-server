@@ -10,6 +10,7 @@ import { ChatSession } from './entities/chat-session.entity';
 import { ChatMessage } from './entities/chat-message.entity';
 import { AIProfile } from './config/entities/aiprofile.entity';
 import { SessionAI } from './entities/session-ai.entity';
+import { SystemModule } from './system/system.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { SessionAI } from './entities/session-ai.entity';
     TypeOrmModule.forFeature([ChatSession, ChatMessage, AIProfile, SessionAI]),
     ChatModule,
     AIConfigModule,
+    SystemModule,
   ],
   controllers: [AppController],
   providers: [AppService],
